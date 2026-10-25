@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, date
 
 
 @dataclass(frozen=True)
@@ -16,3 +16,13 @@ class Issue:
     created: datetime
     resolved: datetime | None
     transitions: tuple[Transition, ...] = ()
+
+
+@dataclass(frozen=True)
+class DailyStats:
+    """Статистика по дням: списки одинаковой длины, по одному значению на день."""
+    days: list[date]
+    created: list[int]
+    resolved: list[int]
+    created_cumulative: list[int]
+    resolved_cumulative: list[int]

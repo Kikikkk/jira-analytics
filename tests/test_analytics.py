@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 
-from jira_analytics.analytics import open_durations_days, parse_jira_datetime, time_in_status_days
+from jira_analytics.analytics import (open_durations_days, parse_jira_datetime,
+                                      time_in_status_days, daily_created_resolved)
 from jira_analytics.models import Issue
 from jira_analytics.models import Transition
 
@@ -60,3 +61,20 @@ def test_time_in_status_days_ignores_unresolved_issues():
         transitions=(Transition(utc(2020, 1, 2), "Open", "In Progress"),),
     )
     assert time_in_status_days([issue]) == {}
+
+
+def test_daily_created_resolved_counts_and_cumulative():
+    issues = [
+        Issue("K-1", utc(2020, 1, 1), utc(2020, 1, 3)),
+        Issue("K-2", utc(2020, 1, 1), None),
+    ]
+    stats = daily_created_resolved(issues)
+    assert [d.day for d in stats.days] == [1, 2, 3]
+    assert stats.created == [2, 0, 0]
+    assert stats.resolved == [0, 0, 1]
+    assert stats.created_cumulative == [2, 2, 2]
+    assert stats.resolved_cumulative == [0, 0, 1]
+
+
+def test_daily_created_resolved_empty_input():
+    assert daily_created_resolved([]).days == []

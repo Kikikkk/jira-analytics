@@ -1,6 +1,5 @@
 import re
 from pathlib import Path
-
 import matplotlib.pyplot as plt
 
 
@@ -52,3 +51,27 @@ def plot_status_time_histograms(durations_by_status, output_dir: Path,
         ):
             paths.append(path)
     return paths
+
+
+def plot_daily_created_resolved(stats, output_path):
+    """График №3: сверху задачи по дням, снизу накопительный итог."""
+    if not stats.days:
+        return False
+    fig, (ax_day, ax_total) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+
+    ax_day.plot(stats.days, stats.created, label="Создано", linewidth=0.7)
+    ax_day.plot(stats.days, stats.resolved, label="Закрыто", linewidth=0.7)
+    ax_day.set_ylabel("Задач за день")
+    ax_day.set_title("Созданные и закрытые задачи по дням")
+    ax_day.legend()
+
+    ax_total.plot(stats.days, stats.created_cumulative, label="Создано (накопительно)")
+    ax_total.plot(stats.days, stats.resolved_cumulative, label="Закрыто (накопительно)")
+    ax_total.set_xlabel("Дата")
+    ax_total.set_ylabel("Задач всего")
+    ax_total.legend()
+
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+    return True

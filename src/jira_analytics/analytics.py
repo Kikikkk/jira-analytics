@@ -1,6 +1,8 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta, timezone
+from itertools import accumulate
 from collections import defaultdict
-from .models import Issue
+from collections import Counter
+from .models import Issue, DailyStats
 
 JIRA_DT_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 SECONDS_PER_DAY = 86400
@@ -36,3 +38,27 @@ def time_in_status_days(issues: list[Issue]) -> dict[str, list[float]]:
         for status, days in per_status.items():
             result[status].append(days)
     return dict(result)
+
+def _to_utc_date(value: datetime) -> date:
+    """Календарный день в UTC, чтобы часовые пояса не разносили даты."""
+    return value.astimezone(timezone.utc).date()
+
+def daily_created_resolved(issues: list[Issue]) -> DailyStats:
+    """Количество созданных и закрытых задач по каждому дню
+    (включая дни без событий) и накопительные итоги."""
+    created_by_day = Counter(_to_utc_date(i.created) for i in issues)
+    resolved_by_day = Counter(
+        _to_utc_date(i.resolved) for i in issues if i.resolved is not None
+    )
+    if not created_by_day:
+        return DailyStats([], [], [], [], [])
+
+    first = min(created_by_day)
+    last = max(max(created_by_day), max(resolved_by_day, default=first))
+    days = [first + timedelta(days=n) for n in range((last - first).days + 1)]
+    created = [created_by_day.get(d, 0) for d in days]
+    resolved = [resolved_by_day.get(d, 0) for d in days]
+    return DailyStats(
+        days, created, resolved,
+        list(accumulate(created)), list(accumulate(resolved)),
+    )

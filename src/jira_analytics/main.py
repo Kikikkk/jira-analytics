@@ -2,15 +2,24 @@ import argparse
 import logging
 import sys
 
-from .analytics import open_durations_days, time_in_status_days
+from .analytics import (
+    daily_created_resolved,
+    open_durations_days,
+    time_in_status_days,
+)
 from .config import ConfigError, load_config
 from .issue_mapper import to_issue
 from .jira_client import JiraClient, JiraClientError
-from .plots import plot_open_time_histogram, plot_status_time_histograms
+from .plots import (
+    plot_daily_created_resolved,
+    plot_open_time_histogram,
+    plot_status_time_histograms,
+)
 
 log = logging.getLogger(__name__)
 
 FIELDS = ["created", "resolutiondate", "status"]
+FIELDS_LIGHT = ["created", "resolutiondate"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -28,31 +37,44 @@ def main() -> int:
     try:
         cfg = load_config(args.config)
         cfg.output_dir.mkdir(parents=True, exist_ok=True)
-
         client = JiraClient(cfg.base_url, cfg.page_size, cfg.retries, cfg.timeout)
-        jql = f"project = {cfg.project} AND resolution IS NOT EMPTY ORDER BY created ASC"
-        issues = [
-            to_issue(raw)
-            for raw in client.search_issues(jql, FIELDS, expand="changelog")
-        ]
-        log.info("Закрытых задач: %d", len(issues))
 
-        # График №1
+        # Закрытые задачи с историей: графики №1 и №2
+        closed_jql = f"project = {cfg.project} AND resolution IS NOT EMPTY ORDER BY created ASC"
+        closed = [
+            to_issue(raw)
+            for raw in client.search_issues(closed_jql, FIELDS, expand="changelog")
+        ]
+        log.info("Закрытых задач: %d", len(closed))
+
         plot_open_time_histogram(
-            open_durations_days(issues),
+            open_durations_days(closed),
             cfg.output_dir / "01_open_time_histogram.png",
             bins=cfg.bins,
             max_days=cfg.max_days,
         )
 
-        # График №2
+        by_status = time_in_status_days(closed)
+        for status, values in sorted(by_status.items()):
+            log.info("Статус %s: значений %d", status, len(values))
         paths = plot_status_time_histograms(
-            time_in_status_days(issues),
-            cfg.output_dir,
-            bins=cfg.bins,
-            max_days=cfg.max_days,
+            by_status, cfg.output_dir, bins=cfg.bins, max_days=cfg.max_days
         )
         log.info("Построено графиков по статусам: %d", len(paths))
+
+        # Все задачи, без changelog: график №3
+        all_jql = f"project = {cfg.project} ORDER BY created ASC"
+        all_issues = [
+            to_issue(raw)
+            for raw in client.search_issues(all_jql, FIELDS_LIGHT)
+        ]
+        stats = daily_created_resolved(all_issues)
+        if stats.days:
+            log.info("Всего задач: %d, закрытых: %d",
+                     stats.created_cumulative[-1], stats.resolved_cumulative[-1])
+        plot_daily_created_resolved(
+            stats, cfg.output_dir / "03_created_vs_resolved.png"
+        )
         return 0
     except (ConfigError, JiraClientError) as exc:
         log.error("%s", exc)
