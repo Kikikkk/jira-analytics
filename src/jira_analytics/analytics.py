@@ -1,7 +1,9 @@
 from datetime import datetime
+from collections import defaultdict
 from .models import Issue
 
 JIRA_DT_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+SECONDS_PER_DAY = 86400
 
 def parse_jira_datetime(value: str | None) -> datetime | None:
     """Разбирает дату JIRA вида 2020-01-31T12:00:00.000+0000."""
@@ -10,7 +12,27 @@ def parse_jira_datetime(value: str | None) -> datetime | None:
 def open_durations_days(issues: list[Issue]) -> list[float]:
     """Время в открытом состоянии (в днях) для закрытых задач."""
     return [
-        (i.resolved - i.created).total_seconds() / 86400
+        (i.resolved - i.created).total_seconds() / SECONDS_PER_DAY
         for i in issues
         if i.resolved is not None and i.resolved >= i.created
     ]
+
+def time_in_status_days(issues: list[Issue]) -> dict[str, list[float]]:
+    """Для каждого статуса возвращает список значений (по одному на задачу):
+    сколько дней закрытая задача провела в этом статусе.
+    Время в последнем (терминальном) статусе не учитывается."""
+    result: dict[str, list[float]] = defaultdict(list)
+    for issue in issues:
+        if issue.resolved is None or not issue.transitions:
+            continue
+        per_status: dict[str, float] = defaultdict(float)
+        prev_time = issue.created
+        prev_status = issue.transitions[0].from_status
+        for transition in issue.transitions:
+            seconds = (transition.at - prev_time).total_seconds()
+            if prev_status and seconds >= 0:
+                per_status[prev_status] += seconds / SECONDS_PER_DAY
+            prev_time, prev_status = transition.at, transition.to_status
+        for status, days in per_status.items():
+            result[status].append(days)
+    return dict(result)

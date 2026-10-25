@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
 
-from jira_analytics.analytics import open_durations_days, parse_jira_datetime
+from jira_analytics.analytics import open_durations_days, parse_jira_datetime, time_in_status_days
 from jira_analytics.models import Issue
-
+from jira_analytics.models import Transition
 
 def utc(*args) -> datetime:
     return datetime(*args, tzinfo=timezone.utc)
@@ -28,3 +28,35 @@ def test_open_durations_days_ignores_unresolved_issues():
 def test_open_durations_days_skips_resolved_before_created():
     issues = [Issue("K-1", utc(2020, 1, 5), utc(2020, 1, 1))]
     assert open_durations_days(issues) == []
+
+def test_time_in_status_days_sums_time_per_status():
+    issue = Issue(
+        "K-1", utc(2020, 1, 1), utc(2020, 1, 5),
+        transitions=(
+            Transition(utc(2020, 1, 2), "Open", "In Progress"),
+            Transition(utc(2020, 1, 5), "In Progress", "Resolved"),
+        ),
+    )
+    assert time_in_status_days([issue]) == {"Open": [1.0], "In Progress": [3.0]}
+
+
+def test_time_in_status_days_sums_repeated_visits():
+    issue = Issue(
+        "K-1", utc(2020, 1, 1), utc(2020, 1, 5),
+        transitions=(
+            Transition(utc(2020, 1, 2), "Open", "In Progress"),
+            Transition(utc(2020, 1, 3), "In Progress", "Open"),
+            Transition(utc(2020, 1, 5), "Open", "Closed"),
+        ),
+    )
+    result = time_in_status_days([issue])
+    assert result["Open"] == [3.0]
+    assert result["In Progress"] == [1.0]
+
+
+def test_time_in_status_days_ignores_unresolved_issues():
+    issue = Issue(
+        "K-1", utc(2020, 1, 1), None,
+        transitions=(Transition(utc(2020, 1, 2), "Open", "In Progress"),),
+    )
+    assert time_in_status_days([issue]) == {}

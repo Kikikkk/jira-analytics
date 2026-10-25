@@ -29,7 +29,7 @@ def load_config(path: str) -> Config:
         return Config(
             base_url=parser.get("jira", "base_url"),
             project=parser.get("jira", "project"),
-            page_size=parser.getint("jira", "page_size", fallback=100),
+            page_size=parser.getint("jira", "page_size", fallback=50),
             retries=parser.getint("jira", "retries", fallback=3),
             timeout=parser.getint("jira", "timeout", fallback=30),
             output_dir=Path(parser.get("output", "directory", fallback="output")),

@@ -30,14 +30,17 @@ class JiraClient:
                     raise JiraClientError(f"Не удалось получить {url}") from exc
                 time.sleep(2 ** attempt)
 
-    def search_issues(self, jql: str, fields: list[str]):
+    def search_issues(self, jql: str, fields: list[str], expand: str | None = None):
         """Генератор задач по JQL с постраничной загрузкой."""
         start = 0
         while True:
-            data = self._get("/rest/api/2/search", {
+            params = {
                 "jql": jql, "fields": ",".join(fields),
                 "startAt": start, "maxResults": self.page_size,
-            })
+            }
+            if expand:
+                params["expand"] = expand
+            data = self._get("/rest/api/2/search", params)
             issues = data["issues"]
             if not issues:
                 return
