@@ -29,3 +29,12 @@ def test_to_issue_without_changelog_has_no_transitions():
     raw = make_raw()
     del raw["changelog"]
     assert to_issue(raw).transitions == ()
+
+
+def test_to_issue_reads_users_and_handles_unassigned():
+    raw = make_raw()
+    raw["fields"]["assignee"] = None
+    raw["fields"]["reporter"] = {"displayName": "Alice", "name": "alice"}
+    issue = to_issue(raw)
+    assert issue.assignee is None
+    assert issue.reporter == "Alice"

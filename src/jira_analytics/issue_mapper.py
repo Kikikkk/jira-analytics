@@ -17,6 +17,12 @@ def parse_transitions(raw: dict) -> tuple[Transition, ...]:
     ]
     return tuple(sorted(transitions, key=lambda t: t.at))
 
+def _user_name(value: dict | None) -> str | None:
+    """Имя пользователя из поля assignee/reporter (может быть null)."""
+    if not value:
+        return None
+    return value.get("displayName") or value.get("name")
+
 
 def to_issue(raw: dict) -> Issue:
     """Преобразует JSON задачи из JIRA в модель Issue."""
@@ -26,4 +32,6 @@ def to_issue(raw: dict) -> Issue:
         created=parse_jira_datetime(fields["created"]),
         resolved=parse_jira_datetime(fields.get("resolutiondate")),
         transitions=parse_transitions(raw),
+        assignee=_user_name(fields.get("assignee")),
+        reporter=_user_name(fields.get("reporter")),
     )

@@ -2,7 +2,7 @@ from datetime import datetime, date, timedelta, timezone
 from itertools import accumulate
 from collections import defaultdict
 from collections import Counter
-from .models import Issue, DailyStats
+from .models import Issue, DailyStats, UserTaskCount
 
 JIRA_DT_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 SECONDS_PER_DAY = 86400
@@ -62,3 +62,15 @@ def daily_created_resolved(issues: list[Issue]) -> DailyStats:
         days, created, resolved,
         list(accumulate(created)), list(accumulate(resolved)),
     )
+
+def top_users(issues: list[Issue], limit: int = 30) -> list[UserTaskCount]:
+    """Топ пользователей по сумме задач в ролях исполнителя и репортера.
+    Сортировка по убыванию суммы, при равенстве по имени."""
+    as_assignee = Counter(i.assignee for i in issues if i.assignee)
+    as_reporter = Counter(i.reporter for i in issues if i.reporter)
+    users = [
+        UserTaskCount(name, as_assignee.get(name, 0), as_reporter.get(name, 0))
+        for name in set(as_assignee) | set(as_reporter)
+    ]
+    users.sort(key=lambda u: (-u.total, u.name))
+    return users[:limit]

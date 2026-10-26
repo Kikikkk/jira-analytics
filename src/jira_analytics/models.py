@@ -16,6 +16,8 @@ class Issue:
     created: datetime
     resolved: datetime | None
     transitions: tuple[Transition, ...] = ()
+    assignee: str | None = None
+    reporter: str | None = None
 
 
 @dataclass(frozen=True)
@@ -26,3 +28,15 @@ class DailyStats:
     resolved: list[int]
     created_cumulative: list[int]
     resolved_cumulative: list[int]
+
+
+@dataclass(frozen=True)
+class UserTaskCount:
+    """Количество задач пользователя в ролях исполнителя и репортера."""
+    name: str
+    assignee: int
+    reporter: int
+
+    @property
+    def total(self) -> int:
+        return self.assignee + self.reporter

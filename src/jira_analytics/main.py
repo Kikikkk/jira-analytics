@@ -6,6 +6,7 @@ from .analytics import (
     daily_created_resolved,
     open_durations_days,
     time_in_status_days,
+    top_users,
 )
 from .config import ConfigError, load_config
 from .issue_mapper import to_issue
@@ -14,12 +15,13 @@ from .plots import (
     plot_daily_created_resolved,
     plot_open_time_histogram,
     plot_status_time_histograms,
+    plot_top_users,
 )
 
 log = logging.getLogger(__name__)
 
 FIELDS = ["created", "resolutiondate", "status"]
-FIELDS_LIGHT = ["created", "resolutiondate"]
+FIELDS_LIGHT = ["created", "resolutiondate", "assignee", "reporter"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -75,6 +77,15 @@ def main() -> int:
         plot_daily_created_resolved(
             stats, cfg.output_dir / "03_created_vs_resolved.png"
         )
+        
+        # График №4: те же задачи, что и для графика №3
+        unassigned = sum(1 for i in all_issues if i.assignee is None)
+        log.info("Задач без исполнителя: %d", unassigned)
+        users = top_users(all_issues, cfg.top_users)
+        for user in users[:3]:
+            log.info("%s: исполнитель %d, репортер %d",
+                     user.name, user.assignee, user.reporter)
+        plot_top_users(users, cfg.output_dir / "04_top_users.png")
         return 0
     except (ConfigError, JiraClientError) as exc:
         log.error("%s", exc)

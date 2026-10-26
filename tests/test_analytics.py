@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from jira_analytics.analytics import (open_durations_days, parse_jira_datetime,
-                                      time_in_status_days, daily_created_resolved)
+                                      time_in_status_days, daily_created_resolved, top_users)
 from jira_analytics.models import Issue
 from jira_analytics.models import Transition
 
@@ -78,3 +78,27 @@ def test_daily_created_resolved_counts_and_cumulative():
 
 def test_daily_created_resolved_empty_input():
     assert daily_created_resolved([]).days == []
+
+
+def test_top_users_counts_both_roles():
+    issues = [
+        Issue("K-1", utc(2020, 1, 1), None, assignee="Bob", reporter="Alice"),
+        Issue("K-2", utc(2020, 1, 1), None, assignee="Bob", reporter="Bob"),
+    ]
+    users = top_users(issues)
+    assert (users[0].name, users[0].assignee, users[0].reporter) == ("Bob", 2, 1)
+    assert (users[1].name, users[1].assignee, users[1].reporter) == ("Alice", 0, 1)
+
+
+def test_top_users_respects_limit_and_sorts_by_total():
+    issues = [
+        Issue(f"K-{n}", utc(2020, 1, 1), None, assignee=f"user{n % 3}")
+        for n in range(7)
+    ]
+    users = top_users(issues, limit=2)
+    assert [u.name for u in users] == ["user0", "user1"]
+
+
+def test_top_users_ignores_unassigned():
+    issues = [Issue("K-1", utc(2020, 1, 1), None)]
+    assert top_users(issues) == []

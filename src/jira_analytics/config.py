@@ -16,6 +16,7 @@ class Config:
     timeout: int
     output_dir: Path
     bins: int
+    top_users: int
     max_days: float | None
 
 
@@ -34,6 +35,7 @@ def load_config(path: str) -> Config:
             timeout=parser.getint("jira", "timeout", fallback=30),
             output_dir=Path(parser.get("output", "directory", fallback="output")),
             bins=parser.getint("plots", "bins", fallback=50),
+            top_users=parser.getint("plots", "top_users", fallback=30),
             max_days=float(max_days_raw) if max_days_raw else None,
         )
     except (configparser.Error, ValueError) as exc:

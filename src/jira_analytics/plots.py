@@ -75,3 +75,28 @@ def plot_daily_created_resolved(stats, output_path):
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
     return True
+
+
+def plot_top_users(users, output_path):
+    """График №4: горизонтальные столбики по пользователям,
+    X — число задач, Y — имя пользователя."""
+    if not users:
+        return False
+    height = 0.4
+    positions = list(range(len(users)))
+    fig, ax = plt.subplots(figsize=(10, 0.45 * len(users) + 2))
+    ax.barh([p - height / 2 for p in positions],
+            [u.assignee for u in users], height, label="Исполнитель")
+    ax.barh([p + height / 2 for p in positions],
+            [u.reporter for u in users], height, label="Репортер")
+    ax.set_yticks(positions)
+    ax.set_yticklabels([u.name for u in users])
+    ax.invert_yaxis()  # самый активный пользователь сверху
+    ax.set_xlabel("Количество задач")
+    ax.set_ylabel("Пользователь")
+    ax.set_title(f"Топ-{len(users)} пользователей по количеству задач")
+    ax.legend()
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+    return True
