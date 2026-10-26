@@ -100,3 +100,14 @@ def plot_top_users(users, output_path):
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
     return True
+
+
+def plot_logged_time_histogram(hours, output_path, bins=50, project=""):
+    """График №5: залогированное время по закрытым задачам."""
+    suffix = f" ({project})" if project else ""
+    return plot_duration_histogram(
+        hours, output_path,
+        title=f"Залогированное время по закрытым задачам{suffix}",
+        xlabel="Залогированное время, часы",
+        bins=bins,
+    )

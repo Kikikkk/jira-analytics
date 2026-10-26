@@ -18,6 +18,7 @@ class Issue:
     transitions: tuple[Transition, ...] = ()
     assignee: str | None = None
     reporter: str | None = None
+    time_spent_seconds: int | None = None
 
 
 @dataclass(frozen=True)

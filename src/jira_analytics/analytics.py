@@ -6,6 +6,7 @@ from .models import Issue, DailyStats, UserTaskCount
 
 JIRA_DT_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 SECONDS_PER_DAY = 86400
+SECONDS_PER_HOUR = 3600
 
 def parse_jira_datetime(value: str | None) -> datetime | None:
     """Разбирает дату JIRA вида 2020-01-31T12:00:00.000+0000."""
@@ -74,3 +75,12 @@ def top_users(issues: list[Issue], limit: int = 30) -> list[UserTaskCount]:
     ]
     users.sort(key=lambda u: (-u.total, u.name))
     return users[:limit]
+
+def logged_time_hours(issues: list[Issue]) -> list[float]:
+    """Залогированное время (в часах) для закрытых задач.
+    Задачи без залогированного времени пропускаются."""
+    return [
+        i.time_spent_seconds / SECONDS_PER_HOUR
+        for i in issues
+        if i.resolved is not None and i.time_spent_seconds
+    ]

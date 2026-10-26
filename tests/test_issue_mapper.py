@@ -38,3 +38,9 @@ def test_to_issue_reads_users_and_handles_unassigned():
     issue = to_issue(raw)
     assert issue.assignee is None
     assert issue.reporter == "Alice"
+
+
+def test_to_issue_reads_time_spent():
+    raw = make_raw()
+    raw["fields"]["timespent"] = 3600
+    assert to_issue(raw).time_spent_seconds == 3600

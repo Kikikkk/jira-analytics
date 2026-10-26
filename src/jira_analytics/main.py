@@ -7,6 +7,7 @@ from .analytics import (
     open_durations_days,
     time_in_status_days,
     top_users,
+    logged_time_hours,
 )
 from .config import ConfigError, load_config
 from .issue_mapper import to_issue
@@ -16,11 +17,13 @@ from .plots import (
     plot_open_time_histogram,
     plot_status_time_histograms,
     plot_top_users,
+    plot_logged_time_histogram,
 )
 
 log = logging.getLogger(__name__)
 
 FIELDS = ["created", "resolutiondate", "status"]
+FIELDS_WORKLOG = ["created", "resolutiondate", "timespent"]
 FIELDS_LIGHT = ["created", "resolutiondate", "assignee", "reporter"]
 
 
@@ -64,6 +67,24 @@ def main() -> int:
         )
         log.info("Построено графиков по статусам: %d", len(paths))
 
+        # График №5: отдельный запрос, только закрытые задачи с залогированным временем
+        worklog_jql = (
+            f"project = {cfg.worklog_project} AND resolution IS NOT EMPTY "
+            "AND timespent > 0 ORDER BY created ASC"
+        )
+        logged = [
+            to_issue(raw)
+            for raw in client.search_issues(worklog_jql, FIELDS_WORKLOG)
+        ]
+        hours = logged_time_hours(logged)
+        log.info("Проект %s: закрытых задач с залогированным временем: %d",
+                 cfg.worklog_project, len(hours))
+        if not plot_logged_time_histogram(
+            hours, cfg.output_dir / "05_logged_time_histogram.png",
+            bins=cfg.bins, project=cfg.worklog_project,
+        ):
+            log.warning("Нет данных о залогированном времени, график 5 не построен")
+
         # Все задачи, без changelog: график №3
         all_jql = f"project = {cfg.project} ORDER BY created ASC"
         all_issues = [
@@ -77,7 +98,7 @@ def main() -> int:
         plot_daily_created_resolved(
             stats, cfg.output_dir / "03_created_vs_resolved.png"
         )
-        
+
         # График №4: те же задачи, что и для графика №3
         unassigned = sum(1 for i in all_issues if i.assignee is None)
         log.info("Задач без исполнителя: %d", unassigned)

@@ -1,7 +1,8 @@
 from datetime import datetime, timezone
 
 from jira_analytics.analytics import (open_durations_days, parse_jira_datetime,
-                                      time_in_status_days, daily_created_resolved, top_users)
+                                      time_in_status_days, daily_created_resolved,
+                                      top_users, logged_time_hours)
 from jira_analytics.models import Issue
 from jira_analytics.models import Transition
 
@@ -102,3 +103,21 @@ def test_top_users_respects_limit_and_sorts_by_total():
 def test_top_users_ignores_unassigned():
     issues = [Issue("K-1", utc(2020, 1, 1), None)]
     assert top_users(issues) == []
+
+
+def test_logged_time_hours_converts_seconds_to_hours():
+    issues = [Issue("K-1", utc(2020, 1, 1), utc(2020, 1, 2), time_spent_seconds=7200)]
+    assert logged_time_hours(issues) == [2.0]
+
+
+def test_logged_time_hours_skips_issues_without_logged_time():
+    issues = [
+        Issue("K-1", utc(2020, 1, 1), utc(2020, 1, 2)),
+        Issue("K-2", utc(2020, 1, 1), utc(2020, 1, 2), time_spent_seconds=0),
+    ]
+    assert logged_time_hours(issues) == []
+
+
+def test_logged_time_hours_ignores_unresolved_issues():
+    issues = [Issue("K-1", utc(2020, 1, 1), None, time_spent_seconds=3600)]
+    assert logged_time_hours(issues) == []

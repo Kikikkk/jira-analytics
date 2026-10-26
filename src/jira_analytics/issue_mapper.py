@@ -34,4 +34,5 @@ def to_issue(raw: dict) -> Issue:
         transitions=parse_transitions(raw),
         assignee=_user_name(fields.get("assignee")),
         reporter=_user_name(fields.get("reporter")),
+        time_spent_seconds=fields.get("timespent"),
     )
