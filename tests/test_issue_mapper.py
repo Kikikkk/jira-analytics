@@ -44,3 +44,11 @@ def test_to_issue_reads_time_spent():
     raw = make_raw()
     raw["fields"]["timespent"] = 3600
     assert to_issue(raw).time_spent_seconds == 3600
+
+
+def test_to_issue_reads_priority_and_handles_null():
+    raw = make_raw()
+    raw["fields"]["priority"] = {"name": "Major"}
+    assert to_issue(raw).priority == "Major"
+    raw["fields"]["priority"] = None
+    assert to_issue(raw).priority is None

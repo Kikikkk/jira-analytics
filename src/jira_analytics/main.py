@@ -8,6 +8,7 @@ from .analytics import (
     time_in_status_days,
     top_users,
     logged_time_hours,
+    priority_counts
 )
 from .config import ConfigError, load_config
 from .issue_mapper import to_issue
@@ -18,13 +19,14 @@ from .plots import (
     plot_status_time_histograms,
     plot_top_users,
     plot_logged_time_histogram,
+    plot_priority_counts
 )
 
 log = logging.getLogger(__name__)
 
 FIELDS = ["created", "resolutiondate", "status"]
 FIELDS_WORKLOG = ["created", "resolutiondate", "timespent"]
-FIELDS_LIGHT = ["created", "resolutiondate", "assignee", "reporter"]
+FIELDS_LIGHT = ["created", "resolutiondate", "assignee", "reporter", "priority"]
 
 
 def parse_args() -> argparse.Namespace:
@@ -107,6 +109,13 @@ def main() -> int:
             log.info("%s: исполнитель %d, репортер %d",
                      user.name, user.assignee, user.reporter)
         plot_top_users(users, cfg.output_dir / "04_top_users.png")
+
+        # График №6: те же задачи, что и для графиков 3 и 4
+        counts = priority_counts(all_issues)
+        log.info("Задач по приоритетам: %s", dict(counts))
+        log.info("Задач без приоритета: %d",
+                 sum(1 for i in all_issues if i.priority is None))
+        plot_priority_counts(counts, cfg.output_dir / "06_priority.png")
         return 0
     except (ConfigError, JiraClientError) as exc:
         log.error("%s", exc)

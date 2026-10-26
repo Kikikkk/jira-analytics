@@ -7,6 +7,7 @@ from .models import Issue, DailyStats, UserTaskCount
 JIRA_DT_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 SECONDS_PER_DAY = 86400
 SECONDS_PER_HOUR = 3600
+PRIORITY_ORDER = ("Blocker", "Critical", "Major", "Minor", "Trivial")
 
 def parse_jira_datetime(value: str | None) -> datetime | None:
     """Разбирает дату JIRA вида 2020-01-31T12:00:00.000+0000."""
@@ -84,3 +85,15 @@ def logged_time_hours(issues: list[Issue]) -> list[float]:
         for i in issues
         if i.resolved is not None and i.time_spent_seconds
     ]
+
+def priority_counts(issues: list[Issue]) -> list[tuple[str, int]]:
+    """Количество задач по уровням приоритета.
+    Стандартные уровни идут в порядке серьёзности, остальные после них
+    по убыванию количества. Задачи без приоритета пропускаются."""
+    counts = Counter(i.priority for i in issues if i.priority)
+    known = [(name, counts[name]) for name in PRIORITY_ORDER if name in counts]
+    other = sorted(
+        ((name, n) for name, n in counts.items() if name not in PRIORITY_ORDER),
+        key=lambda pair: (-pair[1], pair[0]),
+    )
+    return known + other

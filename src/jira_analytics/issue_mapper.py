@@ -35,4 +35,5 @@ def to_issue(raw: dict) -> Issue:
         assignee=_user_name(fields.get("assignee")),
         reporter=_user_name(fields.get("reporter")),
         time_spent_seconds=fields.get("timespent"),
+        priority=(fields.get("priority") or {}).get("name"),
     )

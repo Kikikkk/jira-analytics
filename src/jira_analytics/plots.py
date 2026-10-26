@@ -111,3 +111,21 @@ def plot_logged_time_histogram(hours, output_path, bins=50, project=""):
         xlabel="Залогированное время, часы",
         bins=bins,
     )
+
+
+def plot_priority_counts(counts, output_path):
+    """График №6: количество задач по уровням приоритета (серьёзности)."""
+    if not counts:
+        return False
+    names = [name for name, _ in counts]
+    values = [n for _, n in counts]
+    fig, ax = plt.subplots(figsize=(9, 6))
+    bars = ax.bar(names, values, edgecolor="black")
+    ax.bar_label(bars)  # число над каждым столбцом
+    ax.set_xlabel("Степень серьёзности (приоритет)")
+    ax.set_ylabel("Количество задач")
+    ax.set_title("Количество задач по степени серьёзности")
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+    return True

@@ -19,6 +19,7 @@ class Issue:
     assignee: str | None = None
     reporter: str | None = None
     time_spent_seconds: int | None = None
+    priority: str | None = None
 
 
 @dataclass(frozen=True)

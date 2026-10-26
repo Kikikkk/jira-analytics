@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from jira_analytics.analytics import (open_durations_days, parse_jira_datetime,
                                       time_in_status_days, daily_created_resolved,
-                                      top_users, logged_time_hours)
+                                      top_users, logged_time_hours, priority_counts)
 from jira_analytics.models import Issue
 from jira_analytics.models import Transition
 
@@ -121,3 +121,25 @@ def test_logged_time_hours_skips_issues_without_logged_time():
 def test_logged_time_hours_ignores_unresolved_issues():
     issues = [Issue("K-1", utc(2020, 1, 1), None, time_spent_seconds=3600)]
     assert logged_time_hours(issues) == []
+
+
+def test_priority_counts_orders_by_severity():
+    issues = [
+        Issue("K-1", utc(2020, 1, 1), None, priority="Minor"),
+        Issue("K-2", utc(2020, 1, 1), None, priority="Blocker"),
+        Issue("K-3", utc(2020, 1, 1), None, priority="Minor"),
+    ]
+    assert priority_counts(issues) == [("Blocker", 1), ("Minor", 2)]
+
+
+def test_priority_counts_puts_unknown_levels_last():
+    issues = [
+        Issue("K-1", utc(2020, 1, 1), None, priority="Urgent"),
+        Issue("K-2", utc(2020, 1, 1), None, priority="Major"),
+    ]
+    assert priority_counts(issues) == [("Major", 1), ("Urgent", 1)]
+
+
+def test_priority_counts_skips_issues_without_priority():
+    issues = [Issue("K-1", utc(2020, 1, 1), None)]
+    assert priority_counts(issues) == []
